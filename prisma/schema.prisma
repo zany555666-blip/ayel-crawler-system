@@ -1,0 +1,453 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  name                String?
+  email               String    @unique
+  emailVerified       DateTime?
+  password            String?
+  image               String?
+  role                String    @default("vendor") // admin, vendor, sales
+  company             String?
+  phone               String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  tokenVersion        Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  vendorProfile     Vendor?
+  assignedCustomers Customer[]       @relation("AssignedCustomers")
+  assignedTasks     CustomerTask[]    @relation("TaskAssignees")
+  reviews           VendorReview[]    @relation("UserReviews")
+  systemConfig      SystemConfig?
+  crawlerConfig     CrawlerConfig?
+  orders            Order[]
+  emails            Email[]
+  chatMessages      ChatMessage[]
+  customers         Customer[]       @relation("CreatedCustomers")
+  emailAccounts     EmailAccount[]
+  emailTemplates    EmailTemplate[]
+  campaigns         Campaign[]
+  blacklistEntries  BlacklistEntry[]
+  knowledgeEntries  KnowledgeEntry[]
+  crawlSessions     CrawlSession[]
+  loginLogs         LoginLog[]
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  ip        String?
+  userAgent String?
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Vendor {
+  id              String   @id @default(uuid())
+  name            String
+  contactName     String?
+  email           String?
+  phone           String?
+  address         String?
+  country         String?
+  website         String?
+  category        String?  // raw_materials, components, finished_goods, logistics
+  status          String   @default("active") // active, inactive, pending
+  rating          Int      @default(0)
+  notes           String?
+  certificates    String?  // JSON array
+  bankInfo        String?  // encrypted JSON
+  userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products        Product[]
+  orders          Order[]
+  contracts       Contract[]
+  reviews         VendorReview[]
+}
+
+model Product {
+  id              String      @id @default(uuid())
+  name            String
+  nameEn          String?
+  sku             String      @unique
+  category        String?
+  subCategory     String?
+  description     String?
+  descriptionEn   String?
+  price           Decimal     @default(0)
+  currency        String      @default("CNY")
+  moq             Int         @default(1)   // minimum order quantity
+  leadTime        Int         @default(15)  // days
+  unit            String      @default("pcs")
+  imageUrl        String?
+  images          String?     // JSON array
+  specifications  String?     // JSON
+  certifications  String?     // JSON
+  isActive        Boolean     @default(true)
+  vendorId        String
+  vendor          Vendor      @relation(fields: [vendorId], references: [id])
+
+  knowledgeEntries KnowledgeEntry[]
+  orderItems       OrderItem[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model KnowledgeEntry {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id])
+  title          String
+  content        String
+  contentType    String   @default("manual") // manual, specification, certificate, faq
+  tags           String?  // comma separated
+  sourceFile     String?
+  language       String   @default("zh") // zh, en, bilingual
+  embedding      String?  // JSON float vector for local RAG retrieval
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  vendorId        String
+  vendor          Vendor      @relation(fields: [vendorId], references: [id])
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  status          String      @default("pending") // pending, confirmed, processing, shipped, delivered, cancelled
+  totalAmount     Decimal     @default(0)
+  currency        String      @default("CNY")
+  expectedDelivery DateTime?
+  actualDelivery  DateTime?
+  notes           String?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal
+  totalPrice Decimal
+}
+
+model Contract {
+  id          String   @id @default(uuid())
+  title       String
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  content     String?
+  fileUrl     String?
+  status      String   @default("active") // draft, active, expired, terminated
+  startDate   DateTime
+  endDate     DateTime
+  totalValue  Decimal?
+  signedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VendorReview {
+  id        String   @id @default(uuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  userId    String
+  user      User     @relation("UserReviews", fields: [userId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  name            String
+  contactName     String?
+  email           String?
+  phone           String?
+  company         String?
+  country         String?
+  industry        String?
+  website         String?
+  sourceUrl       String? // 来源详情页（如 TradeWheel 询盘页）
+  customerType    String   @default("overseas") // overseas, domestic
+  source          String?  // linkedin, exhibition, referral, web, other
+  status          String   @default("lead") // lead, qualified, negotiation, won, lost
+  notes           String?
+  totalValue      Decimal  @default(0)
+  lastContactAt   DateTime?
+  assignedTo      String?
+  assignee        User?    @relation("AssignedCustomers", fields: [assignedTo], references: [id])
+  createdBy       String
+  creator         User?    @relation("CreatedCustomers", fields: [createdBy], references: [id])
+  backgroundCheck String?  // JSON with AI background check results
+  interests       String?  // JSON array of product IDs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  emails     Email[]
+  tasks      CustomerTask[]
+}
+
+model CustomerTask {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title      String
+  description String?
+  dueDate    DateTime?
+  status     String   @default("pending") // pending, in_progress, completed
+  assigneeId String?
+  assignee   User?    @relation("TaskAssignees", fields: [assigneeId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Email {
+  id          String   @id @default(uuid())
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vendorId    String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  toAddress   String
+  fromAddress String
+  subject     String
+  body        String
+  type        String   @default("outbound") // inbound, outbound, auto_reply
+  language    String   @default("en")
+  status      String   @default("draft") // draft, sent, failed
+  aiGenerated Boolean  @default(false)
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  eventType String   // order_created, vendor_onboarded, customer_converted, etc
+  entityType String? // order, vendor, customer, product
+  entityId  String?
+  data      String?  // JSON
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      String   // user, assistant, system
+  content   String
+  sessionId String
+  createdAt DateTime @default(now())
+}
+
+model SystemConfig {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String  @default("deepseek")
+  apiKey    String  @default("") // encrypted at rest
+  baseUrl   String  @default("https://api.deepseek.com/v1")
+  modelName String  @default("deepseek-chat")
+  updatedAt DateTime @updatedAt
+}
+
+model CrawlerConfig {
+  id               String @id @default(uuid())
+  userId           String @unique
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorSources    String @default("[\"1688\",\"hc360\"]")
+  vendorKeywords   String @default("传感器,控制器,自动化设备")
+  vendorPages      Int    @default(1)
+  requestDelayMs   Int    @default(1200)
+  crawlMode        String @default("http") // http, headless
+  headlessBrowsers String @default("[\"edge\"]") // chrome, edge, firefox
+  crawlInterval    String @default("daily")
+  customerSources  String @default("[\"linkedin\",\"globalsources\"]")
+  customerKeywords String @default("industrial sensors,automation,controllers")
+  targetCountries  String @default("Germany,USA,Mexico,Brazil,UAE")
+  marketMode       String @default("global") // domestic, overseas, global
+  autoMarketing    Boolean @default(false) // 新采集线索自动进入营销队列
+  autoCampaignId   String? // 自动营销目标 campaign；为空时自动找/建
+  senderEmail      String? // 自定义发件邮箱（邮件与 TradeWheel 平台通道统一使用）
+  senderSmtpHost   String? // 发件 SMTP 服务器；留空按邮箱域名自动识别
+  senderSmtpPort   Int?    // 发件 SMTP 端口；默认 465
+  senderSmtpPass   String? // 发件 SMTP 授权码/密码
+  updatedAt        DateTime @updatedAt
+}
+
+model CrawlSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyword   String
+  target    String   @default("supplier")
+  results   String   // JSON array of vendor snapshots with stored flag
+  createdAt DateTime @default(now())
+}
+
+model EmailAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email         String
+  smtpHost      String
+  smtpPort      Int      @default(587)
+  smtpUser      String
+  smtpPass      String   // encrypted
+  dailyLimit    Int      @default(50)
+  sentToday     Int      @default(0)
+  lastResetDate DateTime @default(now())
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String   @default("cold_outreach") // cold_outreach, new_product, follow_up, custom
+  language    String   @default("en")
+  subject     String
+  body        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  customerType   String   @default("all") // all, overseas, domestic
+  status         String   @default("draft") // draft, scheduled, running, paused, completed, cancelled
+  emailType      String   @default("cold_outreach") // cold_outreach, new_product, follow_up
+  language       String   @default("en")
+  emailSubject   String?
+  emailBody      String?
+  templateId     String?
+  template       EmailTemplate? @relation(fields: [templateId], references: [id])
+  customerTagIds String?  // JSON array of customer IDs to include
+  intervalMin    Int      @default(10) // minutes between batches
+  batchSize      Int      @default(5)  // emails per batch
+  maxPerDay      Int      @default(200)
+  startHour      Int?     // 发送窗口开始小时 0-23，null=全天
+  endHour        Int?     // 发送窗口结束小时 0-23，null=全天
+  useTimeZone    Boolean  @default(true)
+  startAt        DateTime?
+  nextRunAt      DateTime?
+  lastRunAt      DateTime?
+  totalSent      Int      @default(0)
+  totalOpened    Int      @default(0)
+  totalClicked   Int      @default(0)
+  totalBounced   Int      @default(0)
+  totalReplied   Int      @default(0)
+  totalUnsub     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  recipients CampaignRecipient[]
+}
+
+model CampaignRecipient {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId  String?
+  email       String
+  customerName String?
+  channel     String   @default("email") // email, tradewheel
+  threadUrl   String?  // 平台站内信目标详情页
+  status      String   @default("pending") // pending, sent, delivered, opened, clicked, bounced, unsubscribed, complained
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  openCount   Int      @default(0)
+  clickCount  Int      @default(0)
+  messageId   String?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@unique([campaignId, email])
+}
+
+model BlacklistEntry {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  reason    String   @default("unsubscribed") // unsubscribed, bounced, complained, manual
+  createdAt DateTime @default(now())
+
+  @@unique([userId, email])
+}
+
+model TrackingPixel {
+  id        String   @id @default(uuid())
+  email     String
+  campaignId String
+  type      String   // open, click
+  url       String?
+  createdAt DateTime @default(now())
+}

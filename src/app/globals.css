@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #0a0a0a;
+  --color-foreground: #f5f5f7;
+  --color-surface: #141414;
+  --color-border: #262626;
+  --color-muted: #a1a1a6;
+  --color-accent: #ffffff;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --bg: #000000;
+  --surface: #141414;
+  --surface2: #1c1c1c;
+  --surface3: #2c2c2c;
+  --border: #262626;
+  --fg: #f5f5f7;
+  --muted: #a1a1a6;
+  --sub: #636366;
+  --okbg: #0a2e1a;
+  --infobg: #0a1a2e;
+  --errbg: #1a0d0d;
+  --warnbg: #2e200a;
+  --ok: #30d158;
+  --info: #5ac8fa;
+  --err: #ff453a;
+  --warn: #ff9f0a;
+}
+
+html.theme-light {
+  --bg: rgba(242, 242, 247, 0.88);
+  --surface: rgba(255, 255, 255, 0.68);
+  --surface2: rgba(255, 255, 255, 0.82);
+  --surface3: rgba(229, 229, 234, 0.8);
+  --border: rgba(60, 60, 67, 0.14);
+  --fg: #1c1c1e;
+  --muted: #6e6e73;
+  --sub: #8e8e93;
+  --okbg: rgba(26, 158, 75, 0.12);
+  --infobg: rgba(10, 124, 194, 0.12);
+  --errbg: rgba(215, 0, 21, 0.1);
+  --warnbg: rgba(178, 80, 0, 0.12);
+  --ok: #1a9e4b;
+  --info: #0a7cc2;
+  --err: #d70015;
+  --warn: #b25000;
+}
+
+/* ------- iOS 质感：浅色模式 ------- */
+
+html.theme-light body {
+  background-color: #f2f2f7;
+  background-image:
+    radial-gradient(1100px 560px at 12% -8%, rgba(255, 255, 255, 0.95), transparent 62%),
+    radial-gradient(900px 480px at 88% 8%, rgba(170, 190, 235, 0.4), transparent 58%),
+    radial-gradient(700px 420px at 55% 108%, rgba(255, 235, 200, 0.35), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* 毛玻璃卡片：所有 surface 卡片 */
+html.theme-light [class*="bg-[var(--surface)]"]:not([class*="surface2"]):not([class*="surface3"]) {
+  background-color: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(22px) saturate(1.7);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* 侧栏毛玻璃 */
+html.theme-light aside {
+  background-color: rgba(248, 248, 250, 0.74) !important;
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+}
+
+/* 移动端顶栏毛玻璃 */
+html.theme-light header {
+  background-color: rgba(248, 248, 250, 0.7) !important;
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+}
+
+/* 内嵌层（输入框/列表项）近纯白，避免双重模糊 */
+html.theme-light [class*="bg-[var(--surface2)]"] {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* hover 层 */
+html.theme-light [class*="bg-[var(--surface3)]"] {
+  background-color: rgba(229, 229, 234, 0.75);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 主操作按钮 iOS 蓝 */
+html.theme-light [class*="bg-[#0071e3]"] {
+  background: linear-gradient(180deg, #1f8aff 0%, #0a7cef 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 14px rgba(10, 124, 239, 0.35);
+}
+
+/* iOS 分隔线：1px hairline */
+html.theme-light .divide-y > * {
+  border-color: rgba(60, 60, 67, 0.08);
+}
+
+/* 表单控件 iOS 化 */
+html.theme-light input,
+html.theme-light select,
+html.theme-light textarea {
+  border-color: rgba(60, 60, 67, 0.1) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+html.theme-light input:focus,
+html.theme-light select:focus,
+html.theme-light textarea:focus {
+  border-color: rgba(10, 124, 239, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(10, 124, 239, 0.18);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 767px) {
+  main .grid-cols-3,
+  main .grid-cols-4,
+  main .grid-cols-5,
+  main .grid-cols-6,
+  main .grid-cols-7,
+  main .grid-cols-8,
+  main .grid-cols-12 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  main .flex.gap-6,
+  main .flex.gap-8,
+  main .flex.gap-10 {
+    flex-wrap: wrap;
+  }
+
+  main table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    zoom: 0.85;
+  }
+}

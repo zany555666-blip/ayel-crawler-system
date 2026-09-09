@@ -1,0 +1,13 @@
+# Caddy 反向代理 + 自动 HTTPS（示例，域名需解析到服务器 IP）
+# 安装: apt install caddy  或官网一键脚本
+# 使用: 把下面内容放到 /etc/caddy/Caddyfile，然后 systemctl restart caddy
+
+yourdomain.com {
+    reverse_proxy 127.0.0.1:3000
+    encode gzip
+}
+
+# 用 IP 直接访问（无域名时）:
+# http://你的服务器IP {
+#     reverse_proxy 127.0.0.1:3000
+# }
